@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>incomes</title>
+    <style>
+        html,
+        body,
+        #container {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+<div id="container" class="container"></div>
+<script src="//webapi.amap.com/maps?v=1.4.15&plugin=Map3D&key=f11127bde63284100ee130139047cc7b&"></script>
+<script src="//webapi.amap.com/loca?v=1.3.1&key=f11127bde63284100ee130139047cc7b"></script>
+<script src="//a.amap.com/Loca/static/dist/jquery.min.js"></script>
+
+<script>
+    var map = new AMap.Map('container', {
+        mapStyle: 'amap://styles/1de318cbb8d12c02303a22c550b9ccc9',
+        zoom: 5,
+        pitch: 0,
+        features: ['bg', 'road'],
+        center: [104.090834, 31.270677],
+        viewMode: '3D'
+    });
+
+    var layer = new Loca.LabelsLayer({
+        fitView: true,
+        map: map,
+    });
+
+    AMap.plugin('AMap.DistrictSearch', function () {
+        var districtSearch = new AMap.DistrictSearch({
+            // different levels of area, country name
+            level: 'country',
+            //  next level of area
+            subdistrict: 1
+        });
+
+        // search province
+        districtSearch.search('China', function (status, result) {
+            // return information
+            getCenter(result);
+        });
+    });
+
+    // center location
+    function getCenter(result) {
+        var districtList = result.districtList[0].districtList;;
+        var dist = {};
+
+        for (var i = 0, len = districtList.length; i < len; i++) {
+            dist[districtList[i].name] = [districtList[i].center.lng, districtList[i].center.lat];
+        }
+
+        $.get('//a.amap.com/Loca/static/mock/year_income.csv', function (datas) {
+            layer.setData(datas, {
+                type: 'csv',
+                lnglat: function (o) {
+                    return dist[o.value['area']]
+                }
+            }).setOptions({
+                style: {
+                    direction: 'center',
+                    offset: [0, 0],
+                    text: function (data) {
+                        return '￥' + parseInt(data.value['2018'])
+                    },
+                    fillColor: function (data) {
+                        var income = +data.value['2018年'];
+                        return income < 20000 ? '#0C6DB0' :
+                            income < 50000 ? '#2DABBA' : '#82CF9C';
+                    },
+                    fontSize: function (data) {
+                        var income = +data.value['2018'];
+                        return income < 20000 ? 12 :
+                            income < 30000 ? 16 :
+                                income < 40000 ? 20 :
+                                    income < 50000 ? 24 :
+                                        income < 60000 ? 28 : 32;
+                    },
+                    strokeColor: '#000',
+                    strokeWidth: 0,
+                    opacity: 1,
+                },
+                selectStyle: {
+                    fontSize: function (data) {
+                        var income = +data.value['2018'];
+                        return income < 20000 ? 12 :
+                            income < 30000 ? 16 :
+                                income < 40000 ? 20 :
+                                    income < 50000 ? 24 :
+                                        income < 60000 ? 28 : 32;
+                    },
+                    strokeColor: '#000',
+                    strokeWidth: 1,
+                }
+            }).render();
+        });
+    }
+</script>
+</body>
+</html>
